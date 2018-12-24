@@ -1,0 +1,254 @@
+struct BIG {
+	vector < long long > a;
+	bool sign;
+
+	BIG(long long a = 0) {
+		if (a >= 0) {
+			sign = true;
+		}
+		else {
+			a = -a;
+			sign = false;
+		}
+		if (a == 0) {
+			this->a.push_back(0);
+			return;
+		}
+		while (a > 0) {
+			this->a.push_back(a % BLO);
+			a /= BLO;
+		}
+	}
+
+	void read() {
+		string s;
+		cin >> s;
+		if (s == "0") {
+			*this = BIG(0);
+			return;
+		}
+		this->a.clear();
+		long long now = 0, st = 1;
+		for (int i = s.size() - 1; i > -1; i--) {
+			now += st * (s[i] - '0');
+			st *= 10;
+			if (st >= BLO) {
+				this->push_back(now % BLO);
+				now /= BLO;
+				st = 1;
+			}
+		}
+		if (now > 0) {
+			this->push_back(now % BLO);
+		}
+	}
+
+	void write() {
+		if (!this->sign) cout << "-";
+		cout << a[size() - 1];
+		for (int i = this->size() - 2; i > -1; i--) {
+			string tmp = inttostr(a[i]);
+			while (tmp.size() < 9) {
+				tmp = "0" + tmp;
+			}
+			cout << tmp;
+			//cout << this->a[i];
+		}
+	}
+
+	/*long long & operator [](int x) {
+		if (x >= this->size()) exit(1);
+		return a[x];
+	}*/
+
+	long long operator [](int x) const {
+		if (x >= this->size()) return 0;
+		return a[x];
+	}
+
+	long long back() {
+		return a[this->size() - 1];
+	}
+
+	int size() const {
+		return a.size();
+	}
+
+	void push_back(long long x) {
+		a.push_back(x);
+	}
+
+	void pop_back() {
+		a.pop_back();
+	}
+
+	friend bool operator == (BIG a, BIG b) {
+		if (a.size() == 1 && a[0] == 0) {
+			a.sign = 1;
+		}
+		if (b.size() == 1 && b[0] == 0) {
+			b.sign = 1;
+		}
+		return (a.sign == b.sign && a.a == b.a);
+	}
+
+	friend bool operator != (const BIG &a, const BIG &b) {
+		return !(a == b);
+	}
+
+	friend bool operator < (const BIG &a, const BIG &b) {
+		if (a == b) {
+			return false;
+		}
+		if (a.sign < b.sign) return true;
+		if (a.sign > b.sign) return false;
+		if (a.size() < b.size()) {
+			return a.sign;
+		}
+		if (a.size() > b.size()) {
+			return !a.sign;
+		}
+		for (int i = a.size() - 1; i > -1; i--) {
+			if (a[i] != b[i]) {
+				return (a[i] > b[i]) ^ a.sign;
+			}
+		}
+		return false;
+	}
+
+	friend bool operator > (const BIG &a, const BIG &b) {
+		return b < a;
+	}
+
+	friend BIG operator + (BIG a, BIG b) {
+		if (!a.sign) {   // a is negative
+			a.sign ^= 1;
+			BIG tmp = b - a;
+			return tmp;
+		}
+		// a is positive
+		if (!b.sign) {   // b is negative
+			b.sign ^= 1;
+			BIG tmp = a - b;
+			return tmp;
+		}
+		// b is positive
+		long long add = 0;
+		int i;
+		BIG ans;
+		ans.a.clear();
+		for (i = 0; i < max(a.size(), b.size()); i++) {
+			ans.push_back((a[i] + b[i] + add) % BLO);
+			add = (a[i] + b[i] + add) / BLO;
+		}
+		if (add > 0) {
+			ans.push_back(add);
+		}
+		while (ans.size() > 1 && ans.back() == 0) {
+			ans.pop_back();
+		}
+		return ans;
+	}
+
+	friend BIG operator - (BIG a, BIG b) {
+		if (!a.sign) { // a is negative
+			a.sign ^= 1;
+			b.sign ^= 1;
+			BIG tmp = a - b;
+			tmp.sign ^= 1;
+			return tmp;
+		}
+		// a is positive
+		if (!b.sign) { // b is negative
+			b.sign ^= 1;
+			return a + b;
+		}
+		// b is positive
+		if (b > a) {
+			//6 - 10 = -4   10 - 6 = 4
+			BIG tmp = b - a;
+			tmp.sign ^= 1;
+			return tmp;
+		}
+		long long vich = 0;
+		BIG ans;
+		ans.a.clear();
+		for (int i = 0; i < a.size(); i++) {
+			if (a[i] - b[i] - vich < 0) {
+				ans.push_back(a[i] - b[i] + BLO - vich);
+				vich = 1;
+			}
+			else {
+				ans.push_back(a[i] - b[i] - vich);
+				vich = 0;
+			}
+		}
+		while (ans.size() > 1 && ans.back() == 0) {
+			ans.pop_back();
+		}
+		return ans;
+	}
+
+	friend BIG operator * (BIG a, BIG b) {
+		BIG ans;
+		ans.a.clear();
+		bool sgn = !(a.sign ^ b.sign);
+		a.sign = 1;
+		b.sign = 1;
+		BIG st;
+		st.a.clear();
+		for (int i = 0; i < a.size(); i++) {
+			BIG tmp = st;
+			long long add = 0;
+			for (int j = 0; j < b.size(); j++) {
+				tmp.push_back((a[i] * b[j] + add) % BLO);
+				add = (a[i] * b[j] + add) / BLO;
+			}
+			if (add > 0) {
+				tmp.push_back(add);
+			}
+			ans = ans + tmp;
+			st.push_back(0);
+		}
+		ans.sign = sgn;
+		while (ans.size() > 1 && ans.back() == 0) {
+			ans.pop_back();
+		}
+		return ans;
+	}
+
+	friend pair < BIG, BIG > operator / (BIG a, BIG b) {
+		bool sgn = !(a.sign ^ b.sign);
+		a.sign = 1;
+		b.sign = 1;
+		BIG now;
+		now.a.clear();
+		vector < long long > ans;
+		for (int i = a.size() - 1; i > -1; i--) {
+			now = now * BIG(BLO);
+			now = now + BIG(a[i]);
+			long long l = 0;
+			long long r = BLO;
+			while (r - l > 1) {
+				long long m = r + l >> 1;
+				if (b * BIG(m) > now) {
+					r = m;
+				}
+				else {
+					l = m;
+				}
+			}
+			ans.push_back(l);
+			now = now - b * BIG(l);
+		}
+		reverse(ans.begin(), ans.end());
+		BIG Ans;
+		Ans.a = ans;
+		Ans.sign = sgn;
+		now.sign = sgn;
+		while (Ans.size() > 1 && Ans.back() == 0) {
+			Ans.pop_back();
+		}
+		return make_pair(Ans, now);
+	}
+};
