@@ -1,10 +1,17 @@
 #pragma once
+#ifndef __BIGINT
+#define __BIGINT
+
+//#define _DEBUG
+
 #include <iostream>
 #include <string>
 #include <vector>
 #include <assert.h>
 #include <iomanip>
 #include <algorithm>
+
+
 
 using std::cin;
 using std::cout;
@@ -16,368 +23,447 @@ using std::vector;
 using std::string;
 using std::pair;
 
+enum SIGN {
+	LESS,
+	EQUALS,
+	MORE
+};
 
-struct BigInteger {
+struct BigInteger : private vector < unsigned int > {
 public:
+#ifndef _DEBUG
+	const static int BASE = 1e9;
+#endif
+#ifdef _DEBUG
+	const static int BASE = 1e1;
+#endif
 
-	explicit operator bool() {
-	    this->removeLeadingZeros();
-		if (a.size() == 1 && a[0] == 0) return 0;
-		return 1;
-	}
+	std::string toString() const;
+	BigInteger operator -() const;
+	BigInteger& operator++();
+	BigInteger& operator--();
+	const BigInteger operator++(int);
+	const BigInteger operator--(int);
+	BigInteger(int x = 0);
+	BigInteger(const std::string &s);
+	explicit operator bool() const;
+	//friend BigInteger operator *(const BigInteger& left, const BigInteger& right);
+	BigInteger& operator *= (const BigInteger &other);
+	BigInteger& operator /= (const BigInteger &other);
+	BigInteger& operator %= (const BigInteger &other);
+	//friend BigInteger operator /(const BigInteger& left, const BigInteger& right);
+	//friend BigInteger sdv_x(const BigInteger& a, int x);
 
-	BigInteger(int a = 0) {
-		if (a >= 0) {
-			sign = 1;
-		}
-		else {
-			a = -a;
-			sign = 0;
-		}
-		if (a == 0) {
-			this->a.push_back(0);
-			return;
-		}
-		while (a > 0) {
-			this->a.push_back(a % BLO);
-			a /= BLO;
-		}
-		removeLeadingZeros();
-	}
+	SIGN Compare(const BigInteger &other, bool changeMysign = false, bool changeOthersign = false) const;
 
-	friend istream& operator >> (istream &cin, BigInteger &b){
-		string s;
-		cin >> s;
-		if (s == "0") {
-			b = BigInteger(0);
-			return cin;
-		}
-		b.sign = 1;
-		b.a.clear();
-		long long now = 0, st = 1;
-		for (int i = s.size() - 1; i > 0; i--) {
-			now += st * (s[i] - '0');
-			st *= 10;
-			if (st >= BLO) {
-				b.push_back(now % BLO);
-				now /= BLO;
-				st = 1;
-			}
-		}
-		if (s[0] == '-') {
-			b.sign = 0;
-		}
-		else {
-			now += st * (s[0] - '0');
-			st *= 10;
-			if (st >= BLO) {
-				b.push_back(now % BLO);
-				now /= BLO;
-				st = 1;
-			}
-		}
-		if (now > 0) {
-			b.push_back(now % BLO);
-		}
-		b.removeLeadingZeros();
-		return cin;
-	}
+	BigInteger& operator += (const BigInteger &other);
 
-	friend ostream& operator << (ostream &cout, const BigInteger &b){
-		if (!b.sign) cout << "-";
-		cout << b.a.back();
-		for (int i = b.size() - 2; i > -1; i--) {
-			cout << std::setfill('0') << std::setw(9) << b.a[i] << std::ends << endl;
-		}
-		return cout;
-	}
+	BigInteger& operator -= (const BigInteger &other);
 
-	friend bool operator == (const BigInteger &a, const BigInteger &b) {
-		if (a.size() == 1 && a[0] == 0) {
-			if (b.size() == 1 && b[0] == 0) {
-				return true;
-			}
-			return false;
-		}
-		return (a.sign == b.sign && a.a == b.a);
-	}
+	friend istream& operator >> (istream &cin, BigInteger &b);
 
-	friend bool operator != (const BigInteger &a, const BigInteger &b) {
-		return !(a == b);
-	}
-
-	friend bool operator < (const BigInteger &a, const BigInteger &b) {
-		if (a == b) {
-			return false;
-		}
-		if (a.sign < b.sign) return true;
-		if (a.sign > b.sign) return false;
-		if (a.size() < b.size()) {
-			return a.sign;
-		}
-		if (a.size() > b.size()) {
-			return !a.sign;
-		}
-		for (int i = a.size() - 1; i > -1; i--) {
-			if (a[i] != b[i]) {
-				return (a[i] > b[i]) ^ a.sign;
-			}
-		}
-		return false;
-	}
-
-
-
-	friend bool operator > (const BigInteger &a, const BigInteger &b) {
-		return b < a;
-	}
-
-	friend bool operator >= (const BigInteger &a, const BigInteger &b) {
-		return a > b || a == b;
-	}
-
-	friend bool operator <= (const BigInteger &a, const BigInteger &b) {
-		return a < b || a == b;
-	}
-
-	BigInteger operator -() const {
-		BigInteger tmp = *this;
-		tmp.sign ^= 1;
-		return tmp;
-	}
-
-	friend BigInteger operator + (const BigInteger &a, const BigInteger &b) {
-		if (!a.sign) {  
-			// a is negative
-			return b - (-a);
-		}
-		// a is positive
-		if (!b.sign) {   
-			// b is negative
-			return a - (-b);
-		}
-		// b is positive
-		long long add = 0;
-		BigInteger ans;
-		ans.a.clear();
-		for (int i = 0; i < std::max(a.size(), b.size()); ++i) {
-			ans.push_back((a[i] + b[i] + add) % BLO);
-			add = (a[i] + b[i] + add) / BLO;
-		}
-		if (add > 0) {
-			ans.push_back(add);
-		}
-		return ans.removeLeadingZeros();
-	}
-
-	friend BigInteger& operator += (BigInteger &a, const BigInteger &b) {
-		return a = a + b;
-	}
-
-	friend BigInteger operator - (const BigInteger &a, const BigInteger &b) {
-		if (!a.sign) { 
-			// a is negative
-			return -((-a) - (-b));
-		}
-		// a is positive
-		if (!b.sign) { 
-			// b is negative
-			return a + (-b);
-		}
-		// b is positive
-		if (b > a) {
-			//6 - 10 = -4   10 - 6 = 4
-			return -(b - a);
-		}
-		long long reminder = 0;
-		BigInteger ans;
-		ans.a.clear();
-		for (int i = 0; i < a.size(); i++) {
-			if (a[i] - b[i] - reminder < 0) {
-				ans.push_back(a[i] - b[i] + BLO - reminder);
-				reminder = 1;
-			}
-			else {
-				ans.push_back(a[i] - b[i] - reminder);
-				reminder = 0;
-			}
-		}
-		return ans.removeLeadingZeros();
-	}
-
-	friend BigInteger& operator -= (BigInteger &a, const BigInteger &b) {
-		return a = a - b;
-	}
-
-	friend BigInteger operator * (const BigInteger &a, const BigInteger &b) {
-		BigInteger ans;
-		ans.a.clear();
-		bool sgn = !(a.sign ^ b.sign);
-		/*a.sign = 1;
-		b.sign = 1;*/
-		BigInteger st;
-		st.a.clear();
-		for (int i = 0; i < a.size(); i++) {
-			BigInteger tmp = st;
-			long long add = 0;
-			for (int j = 0; j < b.size(); j++) {
-				tmp.push_back((a[i] * b[j] + add) % BLO);
-				add = (a[i] * b[j] + add) / BLO;
-			}
-			if (add > 0) {
-				tmp.push_back(add);
-			}
-			ans = ans + tmp;
-			st.push_back(0);
-		}
-		ans.sign = sgn;
-		return ans.removeLeadingZeros();
-	}
-
-	friend BigInteger& operator *= (BigInteger &a, const BigInteger &b) {
-		return a = a * b;
-	}
-
-	friend BigInteger operator / (const BigInteger &a, const BigInteger &b) {
-		return div(a, b).first;
-	}
-
-	friend BigInteger& operator /= (BigInteger &a, const BigInteger &b) {
-		return a = a / b;
-	}
-
-	friend BigInteger operator % (const BigInteger &a, const BigInteger &b) {
-		return div(a, b).second;
-	}
-
-	friend BigInteger& operator %= (BigInteger &a, const BigInteger &b) {
-		return a = a % b;
-	}
-
-	BigInteger& operator ++ ()
-	{
-		*this += 1;
-		return *this;
-	}
-
-	BigInteger operator ++ (int)
-	{
-		BigInteger tmp = *this;
-		*this += 1;
-		return tmp;
-	}
-
-	BigInteger& operator -- ()
-	{
-		*this -= 1;
-		return *this;
-	}
-	BigInteger operator -- (int)
-	{
-		BigInteger tmp = *this;
-		*this -= 1;
-		return tmp;
-	}
-
-	string toString() {
-		string ans;
-		int tmp = a[0];
-		while (tmp > 0) {
-			ans += tmp % 10 + '0';
-			tmp /= 10;
-		}
-		if (!sign) ans += "-";
-		std::reverse(ans.begin(), ans.end());
-		for (int i = 1; i < size(); i++) {
-			for (int x = BLO / 10; x > 0; x /= 10) {
-				ans += a[i] / x % 10 + '0';
-			}
-		}
-		return ans;
-	}
-
-	friend BigInteger abs(const BigInteger &a) {
-		return (a.sign ? a: -a);
-	}
+	friend BigInteger abs(const BigInteger &x);
 
 private:
-	vector < long long > a;
-	char sign;
-	static const int BLO = 1e9; // power of 10
+	bool sign;
 
+	friend void sum(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign, bool changeBsign);
+	friend void sub(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign, bool changeBsign);
 
-	void push_back(long long x) {
-		a.push_back(x);
-	}
+	friend pair < BigInteger, BigInteger > div(const BigInteger &a, const BigInteger &b, pair < BigInteger, BigInteger > &ans);
 
-	void pop_back() {
-		assert(a.size() > 0);
-		//if (a.size() <= 0) exit(0);
-		a.pop_back();
-	}
-
-	long long operator [](int x) const {
-		assert(x >= 0);
-		//if (x < 0) exit(0);
-		//if (x >= this->size()) return 0;
-		return a[x];
-	}
-
-	long long back() const {
-		assert(a.size() > 0);
-		//if (a.size() <= 0) exit(0);
-		return a.back();
-	}
-
-	int size() const {
-		return a.size();
-	}
-
-	BigInteger& removeLeadingZeros() {
-		while (size() > 1 && back() == 0) {
-			pop_back();
-		}
-		if (size() == 1 && a[0] == 0) {
-			sign = 1;
-		}
-		return *this;
-	}
-
-	long long & operator [](const int &x) {
-		assert(x < this->size() && x >= 0);
-		//if (x >= size()) exit(0);
-		//if (x < 0) exit(0);
-		assert(x >= 0);
-		return a[x];
-	}
-
-	friend pair < BigInteger, BigInteger > div(const BigInteger &a, const BigInteger &b) {
-		assert(b != 0);
-		bool sgn = !(a.sign ^ b.sign);
-		BigInteger now(0);
-		vector < long long > ans;
-		for (int i = a.size() - 1; i > -1; i--) {
-			now = now * BigInteger(BLO);
-			now = now + BigInteger(a[i]);
-			long long l = 0;
-			long long r = BLO;
-			while (r - l > 1) {
-				long long m = (r + l) >> 1;
-				if (abs(b) * BigInteger(m) > now) {
-					r = m;
-				}
-				else {
-					l = m;
-				}
-			}
-			ans.push_back(l);
-			now = now - abs(b) * BigInteger(l);
-		}
-		reverse(ans.begin(), ans.end());
-		BigInteger Ans;
-		Ans.a = ans;
-		Ans.sign = sgn;
-		now.sign = sgn;
-		return std::make_pair(Ans.removeLeadingZeros(), now.removeLeadingZeros());
-	}
+	BigInteger& removeLeadingZeros();
 };
+
+// Utility
+
+void sum(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign = false, bool changeBsign = false) {
+	if (!(a.sign ^ changeAsign)) {
+		// a is negative
+		sub(b, a, ans, changeBsign, changeAsign ^ 1);
+		return;
+	}
+	// a.sign ^ changeAsign == true
+	if (!(b.sign ^ changeBsign)) {
+		// b is negative
+		sub(a, b, ans, changeAsign, changeBsign ^ 1);
+		return;
+		//return a - (-b);
+	}
+	// a.sign ^ changeBsign == true
+	unsigned int add = 0;
+	//BigInteger ans;
+	if (&a != &ans && &b != &ans) {
+		ans.clear();
+	}
+	ans.resize(std::max(a.size(), b.size()));
+	for (size_t i = 0; i < std::max(a.size(), b.size()); ++i) {
+		int l, r;
+		if (i >= a.size()) l = 0;
+		else l = a[i];
+		if (i >= b.size()) r = 0;
+		else r = b[i];
+		ans[i] = (l + r + add) % BigInteger::BASE;
+		add = (l + r + add) / BigInteger::BASE;
+	}
+	if (add > 0) {
+		ans.push_back(add);
+	}
+	ans.removeLeadingZeros();
+	ans.sign = 1;
+	return;
+}
+
+void sub(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign = false, bool changeBsign = false) {
+	if (!(a.sign ^ changeAsign)) {
+		// a is negative
+		sub(a, b, ans, changeAsign ^ 1, changeBsign ^ 1);
+		ans.sign ^= 1;
+		ans.removeLeadingZeros();
+		return;
+	}
+	// a is positive
+	if (!(b.sign ^ changeBsign)) {
+		// b is negative
+		sum(a, b, ans, changeAsign, changeBsign ^ 1);
+		return;
+	}
+	// b is positive
+	if (b.Compare(a, changeBsign, changeAsign) == SIGN::MORE) {
+		//6 - 10 = -4   10 - 6 = 4
+		sub(b, a, ans, changeBsign, changeAsign);
+		ans.sign ^= 1;
+		ans.removeLeadingZeros();
+		return;
+	}
+	unsigned int reminder = 0;
+	//BigInteger ans;
+	ans.sign = 1;
+	if (&a != &ans && &b != &ans) {
+		ans.clear();
+	}
+	ans.resize(std::max(a.size(), b.size()));
+	for (size_t i = 0; i < a.size(); i++) {
+		int r;
+		if (i >= b.size()) r = 0;
+		else r = b[i];
+		if (a[i] < r + reminder) {
+			ans[i] = a[i] + BigInteger::BASE - r - reminder;
+			reminder = 1;
+		}
+		else {
+			ans[i] = a[i] - r - reminder;
+			reminder = 0;
+		}
+	}
+	ans.removeLeadingZeros();
+	return;
+}
+
+BigInteger& BigInteger::removeLeadingZeros() {
+	while (size() > 1 && back() == 0) {
+		pop_back();
+	}
+	if (size() == 1 && (*this)[0] == 0) {
+		sign = 1;
+	}
+	return *this;
+}
+
+SIGN BigInteger::Compare(const BigInteger &other, bool changeMysign, bool changeOthersign) const{
+	if ((sign ^ changeMysign) == 0 && (other.sign ^ changeOthersign) == 1) return SIGN::LESS;
+	if ((sign ^ changeMysign) == 1 && (other.sign ^ changeOthersign) == 0) return SIGN::MORE;
+	if (size() < other.size()) return SIGN::LESS;
+	if (size() > other.size()) return SIGN::MORE;
+	int i = int(size()) - 1;
+	while (i > -1 && (*this)[i] == other[i]) --i;
+	if (i > -1) {
+		if ((*this)[i] < other[i]) {
+			return (sign ^ changeMysign) == 1 ? SIGN::LESS : SIGN::MORE;
+		}
+		else {
+			return (sign ^ changeMysign) == 1 ? SIGN::MORE : SIGN::LESS;
+		}
+	}
+	return SIGN::EQUALS;
+}
+
+// Constructors
+
+BigInteger::BigInteger(int a) {
+	if (a >= 0) {
+		sign = 1;
+	}
+	else {
+		a = -a;
+		sign = 0;
+	}
+	if (a == 0) {
+		push_back(0);
+		return;
+	}
+	while (a > 0) {
+		push_back(a % BASE);
+		a /= BASE;
+	}
+	removeLeadingZeros();
+}
+
+BigInteger::BigInteger(const std::string &s) {
+	if (s == "0") {
+		*this = BigInteger(0);
+		return;
+	}
+	sign = 1;
+	clear();
+	long long now = 0;
+	long long st = 1;
+	for (int i = s.size() - 1; i > 0; i--) {
+		now += st * (s[i] - '0');
+		st *= 10;
+		if (st >= BigInteger::BASE) {
+			push_back(now % BigInteger::BASE);
+			now /= BigInteger::BASE;
+			st = 1;
+		}
+	}
+	if (s[0] == '-') {
+		sign = 0;
+	}
+	else {
+		now += st * (s[0] - '0');
+		st *= 10;
+		if (st >= BigInteger::BASE) {
+			push_back(now % BigInteger::BASE);
+			now /= BigInteger::BASE;
+			st = 1;
+		}
+	}
+	if (now > 0) {
+		push_back(now % BigInteger::BASE);
+	}
+	removeLeadingZeros();
+}
+
+// Comare operatos
+
+bool operator <(const BigInteger &a, const BigInteger &b) {
+	return a.Compare(b) == SIGN::LESS;
+}
+
+bool operator >(const BigInteger &a, const BigInteger &b) {
+	return a.Compare(b) == SIGN::MORE;
+}
+
+bool operator ==(const BigInteger &a, const BigInteger &b) {
+	return a.Compare(b) == SIGN::EQUALS;
+}
+
+bool operator !=(const BigInteger &a, const BigInteger &b) {
+	return a.Compare(b) != SIGN::EQUALS;
+}
+
+bool operator <=(const BigInteger &a, const BigInteger &b) {
+	SIGN tmp = a.Compare(b);
+	return tmp == SIGN::EQUALS || tmp == SIGN::LESS;
+}
+
+bool operator >=(const BigInteger &a, const BigInteger &b) {
+	SIGN tmp = a.Compare(b);
+	return tmp == SIGN::EQUALS || tmp == SIGN::MORE;
+}
+
+// Casting operators
+
+BigInteger::operator bool() const {
+	return (*this) != 0;
+}
+
+// Arithmetic operators
+
+BigInteger BigInteger::operator-() const  {
+	BigInteger ans = *this;
+	ans.sign ^= 1;
+	return ans;
+}
+
+BigInteger operator + (const BigInteger &a, const BigInteger &b) {
+	//exit(0);
+	BigInteger ans;
+	sum(a, b, ans);
+	return ans;
+}
+
+BigInteger operator - (const BigInteger &a, const BigInteger &b) {
+	//exit(0);
+	BigInteger ans;
+	sub(a, b, ans);
+	return ans;
+}
+
+BigInteger& BigInteger::operator += (const BigInteger &other) {
+	//exit(0);
+	sum(*this, other, *this);
+	return *this;
+}
+
+BigInteger& BigInteger::operator -= (const BigInteger &other) {
+	//exit(0);
+	sub(*this, other, *this);
+	return *this;
+}
+
+BigInteger& BigInteger::operator++() {
+	sum(*this, 1, *this);
+	return *this;
+}
+
+BigInteger& BigInteger::operator--() {
+	sub(*this, 1, *this);
+	return *this;
+}
+
+const BigInteger BigInteger::operator++(int) {
+	BigInteger copy = *this;
+	++(*this);
+	return copy;
+}
+
+const BigInteger BigInteger::operator--(int) {
+	BigInteger copy = *this;
+	--(*this);
+	return copy;
+}
+
+BigInteger& BigInteger::operator *= (const BigInteger &other) {
+	BigInteger ans;
+	ans.clear();
+	bool sgn = !(sign ^ other.sign);
+	for (size_t i = 0; i < size(); i++) {
+		BigInteger tmp;
+		tmp.clear();
+		tmp.resize(i);
+		unsigned int add = 0;
+		for (size_t j = 0; j < other.size(); j++) {
+			tmp.push_back((1ull * (*this)[i] * other[j] + add) % BASE);
+			add = (1ull * (*this)[i] * other[j] + add) / BASE;
+		}
+		if (add > 0) {
+			tmp.push_back(add);
+		}
+		ans += tmp;
+	}
+	ans.sign = sgn;
+	return (*this) = ans.removeLeadingZeros();
+}
+
+BigInteger operator * (const BigInteger &a, const BigInteger &b) {
+	BigInteger tmp = a;
+	tmp *= b;
+	return tmp;
+}
+
+pair < BigInteger, BigInteger > div(const BigInteger &a, const BigInteger &b, pair < BigInteger, BigInteger > &ans) {
+	//assert(b != 0);
+	bool sgn = !(a.sign ^ b.sign);
+	//pair < BigInteger, BigInteger > ans(0, 0);
+	ans.first.clear();
+	ans.second = 0;
+	//BigInteger now(0);
+	//vector < long long > ans;
+	for (int i = a.size() - 1; i > -1; --i) {
+		ans.second *= BigInteger::BASE;
+		ans.second += a[i];
+		unsigned int l = 0;
+		unsigned int r = BigInteger::BASE;
+		while (r - l > 1) {
+			unsigned int m = (r + l) >> 1;
+			BigInteger tmp = abs(b) * m;
+			if (tmp > ans.second) {
+				r = m;
+			}
+			else {
+				l = m;
+			}
+		}
+		ans.first.push_back(l);
+		ans.second -= abs(b) * l;
+	}
+	reverse(ans.first.begin(), ans.first.end());
+	ans.first.sign = sgn;
+	ans.second.sign = sgn;
+	ans.first.removeLeadingZeros();
+	ans.second.removeLeadingZeros();
+	return ans;
+}
+
+BigInteger& BigInteger::operator/= (const BigInteger &other) {
+	pair < BigInteger, BigInteger > tmp;
+	div((*this), other, tmp);
+	return (*this) = tmp.first;
+}
+
+BigInteger& BigInteger::operator%= (const BigInteger &other) {
+	pair < BigInteger, BigInteger > tmp;
+	div((*this), other, tmp);
+	return (*this) = tmp.second;
+}
+
+BigInteger operator / (const BigInteger &a, const BigInteger &b) {
+	pair < BigInteger, BigInteger > tmp;
+	div(a, b, tmp);
+	return tmp.first;
+}
+
+BigInteger operator % (const BigInteger &a, const BigInteger &b) {
+	pair < BigInteger, BigInteger > tmp;
+	div(a, b, tmp);
+	return tmp.second;
+}
+
+BigInteger abs(const BigInteger &x) {
+	BigInteger ans = x;
+	ans.sign = 1;
+	return ans;
+}
+
+// I/O Stream operators
+
+std::ostream& operator<<(std::ostream &out, const BigInteger &A) {
+	return out << A.toString();
+}
+
+istream& operator >> (istream &cin, BigInteger &b) {
+	string s;
+	cin >> s;
+	b = s;
+	return cin;
+}
+
+// String converting
+
+string BigInteger::toString() const {
+	char *buf = new char[size() * 9 + !sign + 1];
+	int beg;
+	if (sign) {
+		beg = 0;
+	}
+	else {
+		beg = 1;
+		buf[0] = '-';
+	}
+	beg += sprintf(buf + beg, "%u", back());
+	for (int i = int(size()) - 2; i > -1; --i) {
+#ifndef  _DEBUG
+		beg += sprintf(buf + beg, "%09u", (*this)[i]);
+#endif
+#ifdef  _DEBUG
+		beg += sprintf(buf + beg, "%01u", (*this)[i]);
+#endif
+	}
+	string  ans = buf;
+	delete[] buf;
+	return ans;
+}
+
+#endif 
