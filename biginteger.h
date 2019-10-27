@@ -31,12 +31,12 @@ enum SIGN {
 
 struct BigInteger : private vector < unsigned int > {
 public:
-#ifndef _DEBUG
+/*#ifndef _DEBUG
 	const static int BASE = 1e9;
 #endif
-#ifdef _DEBUG
-	const static int BASE = 1e1;
-#endif
+#ifdef _DEBUG*/
+	const static int BASE = 1e9;
+//#endif
 
 	std::string toString() const;
 	BigInteger operator -() const;
@@ -170,7 +170,7 @@ BigInteger& BigInteger::removeLeadingZeros() {
 	return *this;
 }
 
-SIGN BigInteger::Compare(const BigInteger &other, bool changeMysign, bool changeOthersign) const{
+SIGN BigInteger::Compare(const BigInteger &other, bool changeMysign, bool changeOthersign) const {
 	if ((sign ^ changeMysign) == 0 && (other.sign ^ changeOthersign) == 1) return SIGN::LESS;
 	if ((sign ^ changeMysign) == 1 && (other.sign ^ changeOthersign) == 0) return SIGN::MORE;
 	if (size() < other.size()) return SIGN::LESS;
@@ -245,7 +245,7 @@ BigInteger::BigInteger(const std::string &s) {
 	removeLeadingZeros();
 }
 
-// Comare operatos
+// Compare operatos
 
 bool operator <(const BigInteger &a, const BigInteger &b) {
 	return a.Compare(b) == SIGN::LESS;
@@ -281,7 +281,8 @@ BigInteger::operator bool() const {
 
 // Arithmetic operators
 
-BigInteger BigInteger::operator-() const  {
+BigInteger BigInteger::operator-() const {
+	if (size() == 1 && (*this)[0] == 0) return 0;
 	BigInteger ans = *this;
 	ans.sign ^= 1;
 	return ans;
@@ -366,11 +367,8 @@ BigInteger operator * (const BigInteger &a, const BigInteger &b) {
 pair < BigInteger, BigInteger > div(const BigInteger &a, const BigInteger &b, pair < BigInteger, BigInteger > &ans) {
 	//assert(b != 0);
 	bool sgn = !(a.sign ^ b.sign);
-	//pair < BigInteger, BigInteger > ans(0, 0);
 	ans.first.clear();
 	ans.second = 0;
-	//BigInteger now(0);
-	//vector < long long > ans;
 	for (int i = a.size() - 1; i > -1; --i) {
 		ans.second *= BigInteger::BASE;
 		ans.second += a[i];
@@ -454,12 +452,7 @@ string BigInteger::toString() const {
 	}
 	beg += sprintf(buf + beg, "%u", back());
 	for (int i = int(size()) - 2; i > -1; --i) {
-#ifndef  _DEBUG
-		beg += sprintf(buf + beg, "%09u", (*this)[i]);
-#endif
-#ifdef  _DEBUG
 		beg += sprintf(buf + beg, "%01u", (*this)[i]);
-#endif
 	}
 	string  ans = buf;
 	delete[] buf;
