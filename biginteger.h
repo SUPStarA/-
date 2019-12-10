@@ -2,18 +2,12 @@
 #ifndef __BIGINT
 #define __BIGINT
 
-//#define _DEBUG
-
 #include <iostream>
 #include <string>
 #include <vector>
 #include <assert.h>
 #include <iomanip>
-//#include <algorithm>
-
-
-
-//using std::std::endl;
+#include <algorithm>
 
 enum SIGN {
     LESS,
@@ -33,9 +27,9 @@ public:
 
     BigInteger &operator--();
 
-    const BigInteger operator++(int);
+    BigInteger operator++(int);
 
-    const BigInteger operator--(int);
+    BigInteger operator--(int);
 
     BigInteger(int x = 0);
 
@@ -55,11 +49,8 @@ public:
 
     BigInteger &operator-=(const BigInteger &other);
 
-    //friend void sum(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign, bool changeBsign);
-
-    //friend void sub(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign, bool changeBsign);
-
-    friend std::pair<BigInteger, BigInteger> div(const BigInteger &a, const BigInteger &b, std::pair<BigInteger, BigInteger> &ans);
+    friend std::pair<BigInteger, BigInteger>
+    div(const BigInteger &a, const BigInteger &b, std::pair<BigInteger, BigInteger> &ans);
 
 private:
     bool _sign;
@@ -67,7 +58,12 @@ private:
     BigInteger &_removeLeadingZeros();
 
     BigInteger &_addToModule(const BigInteger &other);
+
     BigInteger &_subLessModule(const BigInteger &other);
+
+    friend BigInteger silly_mult(const BigInteger &a, const BigInteger &other);
+
+    friend BigInteger multPowOfBase(const BigInteger &a, int deg);
 };
 
 // Outside Declaration
@@ -107,87 +103,6 @@ std::ostream &operator<<(std::ostream &out, const BigInteger &a);
 std::istream &operator>>(std::istream &in, BigInteger &b);
 
 // DEFINITION
-
-// Utility
-
-/*void sum(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign = false, bool changeBsign = false) {
-    if (!(a._sign ^ changeAsign)) {
-        // a is negative
-        sub(b, a, ans, changeBsign, changeAsign ^ 1);
-        return;
-    }
-    // a.sign ^ changeAsign == true
-    if (!(b._sign ^ changeBsign)) {
-        // b is negative
-        sub(a, b, ans, changeAsign, changeBsign ^ 1);
-        return;
-    }
-    // a.sign ^ changeBsign == true
-    unsigned int add = 0;
-    if (&a != &ans && &b != &ans) {
-        ans.clear();
-    }
-    ans.resize(std::max(a.size(), b.size()));
-    for (size_t i = 0; i < std::max(a.size(), b.size()); ++i) {
-        int l, r;
-        if (i >= a.size()) l = 0;
-        else l = a[i];
-        if (i >= b.size()) r = 0;
-        else r = b[i];
-        ans[i] = (l + r + add) % BigInteger::BASE;
-        add = (l + r + add) / BigInteger::BASE;
-    }
-    if (add > 0) {
-        ans.push_back(add);
-    }
-    ans._removeLeadingZeros();
-    ans._sign = 1;
-    return;
-}*/
-
-/*void sub(const BigInteger &a, const BigInteger &b, BigInteger &ans, bool changeAsign = false, bool changeBsign = false) {
-    if (!(a._sign ^ changeAsign)) {
-        // a is negative
-        sub(a, b, ans, changeAsign ^ 1, changeBsign ^ 1);
-        ans._sign ^= 1;
-        ans._removeLeadingZeros();
-        return;
-    }
-    // a is positive
-    if (!(b._sign ^ changeBsign)) {
-        // b is negative
-        sum(a, b, ans, changeAsign, changeBsign ^ 1);
-        return;
-    }
-    // b is positive
-    if (b.Compare(a, changeBsign, changeAsign) == SIGN::MORE) {
-        //6 - 10 = -4   10 - 6 = 4
-        sub(b, a, ans, changeBsign, changeAsign);
-        ans._sign ^= 1;
-        ans._removeLeadingZeros();
-        return;
-    }
-    unsigned int remainder = 0;
-    ans._sign = 1;
-    if (&a != &ans && &b != &ans) {
-        ans.clear();
-    }
-    ans.resize(std::max(a.size(), b.size()));
-    for (size_t i = 0; i < a.size(); i++) {
-        int r;
-        if (i >= b.size()) r = 0;
-        else r = b[i];
-        if (a[i] < r + remainder) {
-            ans[i] = a[i] + BigInteger::BASE - r - remainder;
-            remainder = 1;
-        } else {
-            ans[i] = a[i] - r - remainder;
-            remainder = 0;
-        }
-    }
-    ans._removeLeadingZeros();
-    return;
-}*/
 
 BigInteger &BigInteger::_removeLeadingZeros() {
     while (size() > 1 && back() == 0) {
@@ -312,65 +227,48 @@ BigInteger BigInteger::operator-() const {
 
 BigInteger operator+(const BigInteger &a, const BigInteger &b) {
     BigInteger ans = a;
-    //sum(a, b, ans);
     ans += b;
     return ans;
 }
 
 BigInteger operator-(const BigInteger &a, const BigInteger &b) {
     BigInteger ans = a;
-    //sub(a, b, ans);
     ans -= b;
     return ans;
 }
 
-/*BigInteger &BigInteger::operator+=(const BigInteger &other) {
-    sum(*this, other, *this);
-    return *this;
-}
-
-BigInteger &BigInteger::operator-=(const BigInteger &other) {
-    sub(*this, other, *this);
-    return *this;
-}*/
-
 BigInteger &BigInteger::operator++() {
-    //sum(*this, 1, *this);
-
     return *this += 1;
 }
 
 BigInteger &BigInteger::operator--() {
-    //sub(*this, 1, *this);
     return *this -= 1;
 }
 
-const BigInteger BigInteger::operator++(int) {
+BigInteger BigInteger::operator++(int) {
     BigInteger copy = *this;
     ++(*this);
     return copy;
 }
 
-const BigInteger BigInteger::operator--(int) {
+BigInteger BigInteger::operator--(int) {
     BigInteger copy = *this;
     --(*this);
     return copy;
 }
 
-BigInteger &BigInteger::operator*=(const BigInteger &other) {
+BigInteger silly_mult(const BigInteger &a, const BigInteger &other) {
     BigInteger ans;
     ans.clear();
-    bool sgn = !(_sign ^ other._sign);
-    for (size_t i = 0; i < size(); i++) {
+    bool sgn = !(a._sign ^ other._sign);
+    for (size_t i = 0; i < a.size(); i++) {
         BigInteger tmp;
         tmp.clear();
         tmp.resize(i);
         unsigned int add = 0;
         for (size_t j = 0; j < other.size(); j++) {
-            // bad
-            unsigned  long long temp = (1ull * (*this)[i] * other[j] + add);
-            tmp.push_back(temp % BASE);
-            add = temp / BASE;
+            tmp.push_back((1ull * a[i] * other[j] + add) % BigInteger::BASE);
+            add = (1ull * a[i] * other[j] + add) / BigInteger::BASE;
         }
         if (add > 0) {
             tmp.push_back(add);
@@ -378,7 +276,65 @@ BigInteger &BigInteger::operator*=(const BigInteger &other) {
         ans += tmp;
     }
     ans._sign = sgn;
-    return (*this) = ans._removeLeadingZeros();
+    return ans._removeLeadingZeros();
+}
+
+BigInteger multPowOfBase(const BigInteger &a, int deg) {
+    BigInteger ans;
+    ans.clear();
+    for (int i = 0; i < deg; i++) {
+        ans.push_back(0);
+    }
+    for (size_t i = 0; i < a.size(); i++) {
+        ans.push_back(a[i]);
+    }
+    ans._sign = a._sign;
+    return ans._removeLeadingZeros();
+}
+
+BigInteger &BigInteger::operator*=(const BigInteger &other) {
+    bool sgn = !(_sign ^ other._sign);
+    BigInteger ans;
+    size_t n = std::max(size(), other.size());
+    if (n < 33) {
+        return (*this) = silly_mult((*this), other);
+    }
+    BigInteger a, b;
+    a.clear();
+    b.clear();
+    BigInteger c, d;
+    c.clear();
+    d.clear();
+    for (size_t i = 0; i < n; ++i) {
+        if (i < n / 2) {
+            if (i < size())
+                b.push_back((*this)[i]);
+            if (i < other.size())
+                d.push_back(other[i]);
+        } else {
+            if (i < size())
+                a.push_back((*this)[i]);
+            if (i < other.size())
+                c.push_back(other[i]);
+        }
+    }
+    if (a.size() == 0) {
+        a = 0;
+    }
+    if (c.size() == 0) {
+        c = 0;
+    }
+    a._removeLeadingZeros();
+    b._removeLeadingZeros();
+    c._removeLeadingZeros();
+    d._removeLeadingZeros();
+    BigInteger ac = a * c;
+    BigInteger bd = b * d;
+    BigInteger aplusbcplusd = (a + b) * (c + d);
+    BigInteger tmp = multPowOfBase(ac, n / 2 * 2) + multPowOfBase(aplusbcplusd - ac - bd, n / 2) + bd;
+    (*this) = tmp;
+    _sign = sgn;
+    return (*this)._removeLeadingZeros();
 }
 
 BigInteger operator*(const BigInteger &a, const BigInteger &b) {
@@ -387,7 +343,8 @@ BigInteger operator*(const BigInteger &a, const BigInteger &b) {
     return tmp;
 }
 
-std::pair<BigInteger, BigInteger> div(const BigInteger &a, const BigInteger &b, std::pair<BigInteger, BigInteger> &ans) {
+std::pair<BigInteger, BigInteger>
+div(const BigInteger &a, const BigInteger &b, std::pair<BigInteger, BigInteger> &ans) {
     bool sgn = !(a._sign ^ b._sign);
     ans.first.clear();
     ans.second = 0;
@@ -507,12 +464,11 @@ BigInteger &BigInteger::_addToModule(const BigInteger &other) {
 
 BigInteger &BigInteger::_subLessModule(const BigInteger &other) {
     unsigned int remainder = 0;
-    //ans.resize(std::max(a.size(), b.size()));
     for (size_t i = 0; i < size(); i++) {
         int r;
         if (i >= other.size()) r = 0;
         else r = other[i];
-        int temp = (*this)[i] - r - remainder;
+        int temp = static_cast<int>((*this)[i]) - r - remainder;
         if ((*this)[i] < r + remainder) {
             (*this)[i] = temp + BigInteger::BASE;
             remainder = 1;
@@ -526,30 +482,30 @@ BigInteger &BigInteger::_subLessModule(const BigInteger &other) {
 }
 
 BigInteger &BigInteger::operator+=(const BigInteger &other) {
-    if (_sign == other._sign){
+    if (_sign == other._sign) {
         _addToModule(other);
         return (*this);
     }
     // example : 1 + (-2) = -(-1 - (-2))
     _sign ^= true;
-    (*this) -=(other);
+    (*this) -= (other);
     _sign ^= true;
     _removeLeadingZeros();
     return *this;
 }
 
 BigInteger &BigInteger::operator-=(const BigInteger &other) {
-    if (_sign != other._sign){
+    if (_sign != other._sign) {
         // example : 1 - (-2) = -(-1 + (-2))
         _sign ^= true;
         (*this) += other;
         _sign ^= true;
         return (*this);
     }
-    if ((!_sign) ^ ((*this) >= other)){
+    if ((!_sign) ^ ((*this) >= other)) {
         // example : 20 - 1 or -20 - (-1)
-       _subLessModule(other);
-       return (*this);
+        _subLessModule(other);
+        return (*this);
     }
     // example : 1 - 20 or (-1) - (-20)
     BigInteger tmp = other;
@@ -559,4 +515,4 @@ BigInteger &BigInteger::operator-=(const BigInteger &other) {
     return (*this);
 }
 
-#endif 
+#endif
